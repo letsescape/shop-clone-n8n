@@ -1,7 +1,14 @@
 # 유저 문의 자동 분류/응대 워크플로우
 
-> 목적: 사이트 문의가 들어오면 n8n이 **(1) 문의/유저데이터 수신 → (2) AI로 언어/타입 분류 → (3) 내부 문서 기반 권장 응대 방법 추출 → (4) 우선순위(가중치) 산정 → (5) Google
-Sheets 로깅 → (6) 해당 언어로 예상 답변 생성 → (7) 언어별 CS 담당자에게 메일 발송**까지 수행합니다.
+사이트 문의를 n8n으로 다음 과정을 거쳐 처리한다.
+
+- (1) 문의/유저 데이터 수신
+- (2) AI로 문의 언어/타입 분류
+- (3) 데이터(내부 가이드 문서) 기반 권장 응대 방법 확인
+- (4) 우선순위(가중치) 확인
+- (5) Google Sheets 기록 (로깅)
+- (6) 해당 언어로 예상 답변 생성
+- (7) 언어별 CS 담당자에게 메일 발송
 
 ## 1) 전제/규칙(요약)
 
@@ -9,13 +16,13 @@ Sheets 로깅 → (6) 해당 언어로 예상 답변 생성 → (7) 언어별 CS
     - `inquiry`: 원본 문의
     - `user`: 회원만
     - `history`: 이전 문의 내역(회원만)
-- 비회원: `user/history`가 없거나 제외됨(반복 문의 카운트 산정에서 제외)
-- 언어 코드(사내): `ko`, `jp`, `cn`, `tw`, `en(기본값)`
+- 비회원: `user/history`가 없거나 제외
+- 언어 코드(사내): `ko`, `jp`, `cn`, `en(기본값)`
 - 문의 타입(확장 가능):
     - `account`, `invoice`, `subscription`, `feature`, `word-extension-feature`, `chrome-extension-feature`, `payment`,
       `marketing`, `sales`, `etc`
 - 레벨(가중치): `critical`, `error`, `warning`, `notice`, `info`
-- 가이드 문서 규칙(확정): `guides/{type}.txt` (Google Drive)
+- 가이드 문서 규칙: `guides/{type}.txt`
 
 ## 2) 플로우(핵심 단계)
 
@@ -35,7 +42,7 @@ Sheets 로깅 → (6) 해당 언어로 예상 답변 생성 → (7) 언어별 CS
 
 ### Step 3) 내부 문서 로드 & 권장 응대 방법 추출
 
-- Google Drive에서 `guides/{type}.txt` 로드
+- n8n에서 `guides/{type}.txt` 로드
 - AI가 문서 기반으로 권장 응대 방법을 구조화하여 추출
 - 출력(권장)
     - `guide_ko_oneliner`
@@ -61,8 +68,8 @@ Sheets 로깅 → (6) 해당 언어로 예상 답변 생성 → (7) 언어별 CS
 ### Step 7) CS 담당자 메일 발송
 
 - 수신자
-    - 기본: `cs.{lang}@company.com`
-    - 미지원/unknown: `cs@company.com`
+    - 기본: `cs@company.com`
+    - 한국,중국,일본: `cs.{lang}@company.com`
 - 제목 형식(요구사항)
     - `[lang][level][type] {summary_local_1line}`
 - 본문 포함(요구사항)
