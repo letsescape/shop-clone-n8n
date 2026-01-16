@@ -27,7 +27,7 @@ n8n을 로컬에서 빠르게 실행할 수 있도록 Docker Compose 설정을 �
 
 **현재 프로젝트 (테스트 전용)**:
 
-- ✅ 테스트 계정만 사용 (`test@example.com` / `123456`)
+- ✅ 테스트 계정만 사용 (`test@example.com` / `Password1!`)
 - ✅ 테스트용 API 키만 포함
 - ✅ 데모/학습 목적으로 노출 허용
 
