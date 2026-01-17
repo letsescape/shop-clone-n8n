@@ -36,3 +36,15 @@ n8n을 로컬에서 빠르게 실행할 수 있도록 Docker Compose 설정을 �
 - 로그 확인: `docker compose logs -f n8n`
 - 컨테이너 중지: `docker compose down`
 - 데이터를 포함해 초기화: `docker compose down -v`
+
+## 기타
+
+### 가이드 문서
+
+- 경로: `n8n_data/docs/guides/{type}.md`
+- 정책: 문의 `type`과 동일한 파일명의 문서를 로드하여 AI에게 제공(Context)
+
+### 시스템 설정
+
+- 모델: `gpt-5-mini` (비용/속도 최적화)
+- 재시도: API 실패 시 최대 3회 (간격 1초)
