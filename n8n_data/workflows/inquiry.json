@@ -293,7 +293,7 @@
     },
     {
       "parameters": {
-        "filePath": "=/data/guides/{{ $json.type }}.md",
+        "filePath": "=/home/node/.n8n/guides/{{ $json.type }}.md",
         "options": {}
       },
       "id": "13",
