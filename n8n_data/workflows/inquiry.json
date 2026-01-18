@@ -1,0 +1,558 @@
+{
+  "name": "유저 문의 자동 분류/응대 (IF Node)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inquiry",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 400],
+      "webhookId": "inquiry-final"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "user",
+              "name": "user",
+              "value": "={{ $json.body.user || $json.user || 'unknown@example.com' }}",
+              "type": "string"
+            },
+            {
+              "id": "content",
+              "name": "content",
+              "value": "={{ $json.body.content || $json.content || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "type",
+              "name": "type",
+              "value": "={{ ($json.body.type || $json.type || 'general').toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "is_repeat",
+              "name": "is_repeat",
+              "value": "={{ $json.body.is_repeat || $json.is_repeat || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "received_at",
+              "name": "received_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2",
+      "name": "Set (Norm)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "payment",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond2",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "subscription",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond3",
+              "leftValue": "={{ $json.is_repeat }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "IF (Critical Check)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "level",
+              "name": "level",
+              "value": "critical",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "Set (Set_Crit)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "prompt": {
+          "__rl": true,
+          "value": "=당신은 고객 문의의 중요도를 판단하는 전문가입니다.\n\n다음 문의를 분석하여 적절한 레벨을 판정하세요:\n\n**문의 유형**: {{ $json.type }}\n**문의 내용**: {{ $json.content }}\n\n레벨 기준:\n- critical: 즉각 대응 필요 (서비스 중단, 데이터 손실, 보안 문제)\n- error: 주요 기능 오류 (핵심 기능 불가, 반복 오류)\n- warning: 부분 제한 (일부 기능 문제, 성능 저하)\n- info: 일반 문의 (사용법, 기능 요청, 질문)\n\nJSON 형식으로 응답:\n{\"level\": \"critical|error|warning|info\"}",
+          "mode": "id"
+        },
+        "options": {
+          "temperature": 0.3,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "5",
+      "name": "AI Agent (AI_Level)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [900, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "prompt": {
+          "__rl": true,
+          "value": "=다음 고객 문의를 40자 이내로 요약하세요:\n\n{{ $json.content }}\n\n요약 원칙:\n- 핵심 문제만 간결하게\n- 문의 언어 그대로 사용\n- 40자 엄수\n\nJSON 형식:\n{\"summary\": \"요약 내용\"}",
+          "mode": "id"
+        },
+        "options": {
+          "temperature": 0.5,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "6",
+      "name": "AI Agent (AI_Sum)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [680, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "translateText",
+        "text": "={{ $json.content }}",
+        "translateTo": "ko",
+        "options": {}
+      },
+      "id": "7",
+      "name": "Google Translate (Trans)",
+      "type": "n8n-nodes-base.googleTranslate",
+      "typeVersion": 1,
+      "position": [680, 700],
+      "credentials": {
+        "googleApi": {
+          "id": "google-service-account",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Track A: 원본 데이터 + level 추가\nconst original = $('Set (Norm)').first().json;\nconst level = $json.level || ($json.message?.content ? JSON.parse($json.message.content).level : 'info');\n\nreturn [{\n  json: {\n    ...original,\n    level: level\n  }\n}];"
+      },
+      "id": "8",
+      "name": "Code (Combine A)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Track B: 원본 데이터 + summary 추가\nconst original = $('Set (Norm)').first().json;\nconst summary = $json.message?.content ? JSON.parse($json.message.content).summary : '';\n\nreturn [{\n  json: {\n    ...original,\n    summary: summary\n  }\n}];"
+      },
+      "id": "9",
+      "name": "Code (Combine B)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Track C: 원본 데이터 + 번역 정보 추가\nconst original = $('Set (Norm)').first().json;\n\nreturn [{\n  json: {\n    ...original,\n    translatedText: $json.translatedText || original.content,\n    detectedSourceLanguage: $json.detectedSourceLanguage || 'en'\n  }\n}];"
+      },
+      "id": "10",
+      "name": "Code (Combine C)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 3개 트랙의 결과를 하나로 병합\nconst trackA = $('Code (Combine A)').first().json;\nconst trackB = $('Code (Combine B)').first().json;\nconst trackC = $('Code (Combine C)').first().json;\n\nreturn [{\n  json: {\n    ...trackA,\n    ...trackB,\n    ...trackC\n  }\n}];"
+      },
+      "id": "11",
+      "name": "Code (Final Merge)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 500]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "sheetId": {
+          "__rl": true,
+          "value": "inquiry-log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "received_at": "={{ $json.received_at || $now.toISO() }}",
+            "user": "={{ $json.user }}",
+            "type": "={{ $json.type }}",
+            "is_repeat": "={{ $json.is_repeat }}",
+            "level": "={{ $json.level || 'info' }}",
+            "summary": "={{ $json.summary || '' }}",
+            "language": "={{ $json.detectedSourceLanguage || 'en' }}",
+            "content": "={{ $json.content }}",
+            "translated_text": "={{ $json.translatedText || $json.content }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "12",
+      "name": "Google Sheets (Log)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [1560, 260],
+      "credentials": {
+        "googleSheetsApi": {
+          "id": "google-sheets-service-account",
+          "name": "Google Sheets Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "filePath": "=/home/node/.n8n/guides/{{ $json.type }}.md",
+        "options": {}
+      },
+      "id": "13",
+      "name": "Read Binary File (Load_File)",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [1560, 540]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "prompt": {
+          "__rl": true,
+          "value": "=당신은 친절한 고객 지원 담당자입니다.\n\n**고객 정보**:\n- 사용자: {{ $('Code (Final Merge)').item.json.user }}\n- 언어: {{ $('Code (Final Merge)').item.json.detectedSourceLanguage || 'en' }}\n\n**문의 정보**:\n- 유형: {{ $('Code (Final Merge)').item.json.type }}\n- 레벨: {{ $('Code (Final Merge)').item.json.level || 'info' }}\n- 반복: {{ $('Code (Final Merge)').item.json.is_repeat ? '예' : '아니오' }}\n\n**문의 내용**:\n{{ $('Code (Final Merge)').item.json.content }}\n\n**가이드 문서**:\n{{ $binary.data ? Buffer.from($binary.data.data).toString('utf8') : '가이드 없음' }}\n\n위 가이드를 참고하여 고객에게 보낼 답변을 작성하세요.\n\n답변 원칙:\n1. 고객 언어로 작성\n2. 친절하고 명확하게\n3. 가이드 정책 준수\n4. 구체적인 해결 방법 제시\n{{ $('Code (Final Merge)').item.json.is_repeat ? '5. 반복 문의임을 언급하고 추가 확인 필요함을 안내' : '' }}\n\nJSON 형식:\n{\"response\": \"답변 전문\"}",
+          "mode": "id"
+        },
+        "options": {
+          "temperature": 0.7,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "14",
+      "name": "AI Agent (AI_Draft)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1780, 540],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "jsCode": "// 30+ 국가 언어별 담당자 이메일 매핑\nconst languageToEmail = {\n  'ko': 'cs.kr@company.com',\n  'ja': 'cs.jp@company.com',\n  'zh': 'cs.cn@company.com',\n  'zh-cn': 'cs.cn@company.com',\n  'zh-tw': 'cs.tw@company.com',\n  'zh-hk': 'cs.hk@company.com',\n  'th': 'cs.th@company.com',\n  'vi': 'cs.vn@company.com',\n  'id': 'cs.id@company.com',\n  'ms': 'cs.my@company.com',\n  'fil': 'cs.ph@company.com',\n  'tl': 'cs.ph@company.com',\n  'hi': 'cs.in@company.com',\n  'en': 'cs.us@company.com',\n  'en-us': 'cs.us@company.com',\n  'en-gb': 'cs.uk@company.com',\n  'de': 'cs.de@company.com',\n  'fr': 'cs.fr@company.com',\n  'es': 'cs.es@company.com',\n  'it': 'cs.it@company.com',\n  'pt': 'cs.pt@company.com',\n  'pt-br': 'cs.br@company.com',\n  'nl': 'cs.nl@company.com',\n  'pl': 'cs.pl@company.com',\n  'ru': 'cs.ru@company.com',\n  'tr': 'cs.tr@company.com',\n  'sv': 'cs.se@company.com',\n  'no': 'cs.no@company.com',\n  'da': 'cs.dk@company.com',\n  'fi': 'cs.fi@company.com',\n  'en-ca': 'cs.ca@company.com',\n  'es-mx': 'cs.mx@company.com',\n  'ar': 'cs.ae@company.com',\n  'he': 'cs.il@company.com',\n  'en-au': 'cs.au@company.com'\n};\n\nconst defaultEmail = 'cs@company.com';\n\nconst items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  const language = (item.json.detectedSourceLanguage || item.json.language || 'en').toLowerCase();\n  const level = item.json.level || 'info';\n  \n  // 언어별 이메일 매핑\n  let managerEmail = languageToEmail[language];\n  \n  // 기본 언어 fallback\n  if (!managerEmail && language.includes('-')) {\n    const baseLang = language.split('-')[0];\n    managerEmail = languageToEmail[baseLang];\n  }\n  \n  if (!managerEmail) {\n    managerEmail = defaultEmail;\n  }\n  \n  // AI 답변 파싱\n  let expectedResponse = '';\n  if (item.json.message && item.json.message.content) {\n    try {\n      expectedResponse = JSON.parse(item.json.message.content).response || '';\n    } catch (e) {\n      expectedResponse = item.json.message.content || '';\n    }\n  }\n  \n  result.push({\n    json: {\n      ...item.json,\n      manager_email: managerEmail,\n      expected_response: expectedResponse\n    }\n  });\n}\n\nreturn result;"
+      },
+      "id": "15",
+      "name": "Code (Map_Address)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 540]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@company.com",
+        "toEmail": "={{ $json.manager_email }}",
+        "subject": "={{ '[' + ($json.level || 'info').toUpperCase() + '][' + $json.type.toUpperCase() + '] ' + ($json.summary || '고객 문의') }}",
+        "emailType": "html",
+        "message": "=<h2>고객 문의</h2>\n<p><strong>문의 시각:</strong> {{ $json.received_at }}</p>\n<p><strong>고객:</strong> {{ $json.user }}</p>\n<p><strong>유형:</strong> {{ $json.type }}</p>\n<p><strong>레벨:</strong> {{ $json.level || 'info' }}</p>\n<p><strong>반복 문의:</strong> {{ $json.is_repeat ? '예' : '아니오' }}</p>\n\n<h3>문의 내용</h3>\n<p>{{ $json.content }}</p>\n\n<h3>한국어 번역</h3>\n<p>{{ $json.translatedText || $json.content }}</p>\n\n<h3>AI 답변 초안</h3>\n<p>{{ $json.expected_response }}</p>\n\n<hr>\n<p style=\"font-size: 12px; color: #666;\">자동 생성된 이메일입니다.</p>",
+        "options": {}
+      },
+      "id": "16",
+      "name": "Email (Mail_Send)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2220, 540],
+      "credentials": {
+        "smtp": {
+          "id": "smtp",
+          "name": "SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set (Norm)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set (Norm)": {
+      "main": [
+        [
+          {
+            "node": "IF (Critical Check)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent (AI_Sum)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Translate (Trans)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Critical Check)": {
+      "main": [
+        [
+          {
+            "node": "Set (Set_Crit)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (AI_Level)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set (Set_Crit)": {
+      "main": [
+        [
+          {
+            "node": "Code (Combine A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (AI_Level)": {
+      "main": [
+        [
+          {
+            "node": "Code (Combine A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (AI_Sum)": {
+      "main": [
+        [
+          {
+            "node": "Code (Combine B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Translate (Trans)": {
+      "main": [
+        [
+          {
+            "node": "Code (Combine C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Combine A)": {
+      "main": [
+        [
+          {
+            "node": "Code (Final Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Combine B)": {
+      "main": [
+        [
+          {
+            "node": "Code (Final Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Combine C)": {
+      "main": [
+        [
+          {
+            "node": "Code (Final Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Final Merge)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets (Log)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read Binary File (Load_File)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Binary File (Load_File)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (AI_Draft)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (AI_Draft)": {
+      "main": [
+        [
+          {
+            "node": "Code (Map_Address)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Map_Address)": {
+      "main": [
+        [
+          {
+            "node": "Email (Mail_Send)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-01-17T19:20:00.000Z",
+  "versionId": "final-if-node"
+}
