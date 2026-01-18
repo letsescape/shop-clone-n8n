@@ -17,7 +17,7 @@ flowchart TD
 %% 1. 수신 및 정규화
     Step1["Webhook: 수신"] --> Norm["Set: 데이터 정규화"]
 %% 2. 3-Track 병렬 분석
-    Norm --> Switch_Type{"Switch: 유형/반복 확인"}
+    Norm --> Switch_Type{"IF: 유형/반복 확인"}
     Switch_Type -->|" Critical "| Set_Crit["Set: Level Critical"]
     Switch_Type -->|" General "| AI_Level["AI Agent: Level 판단"]
     Norm --> AI_Sum["AI Agent: 요약"]
