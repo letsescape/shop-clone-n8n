@@ -93,7 +93,7 @@ flowchart TD
 
 - Node: `Read Binary File` (Load_File)
 - 연결: `Merge` → `Load_File`
-- 경로: `/data/guides/{{ $json.type }}.md` (Expression 활용)
+- 경로: `/home/node/.n8n/guides/{{ $json.type }}.md` (Expression 활용)
 - 역할: 문의 유형(`type`)에 맞는 로컬 가이드 문서 로드
 - Response: `guide` (가이드 문서 내용)
 
