@@ -306,7 +306,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// OpenAI 번역 결과를 Google Translate 출력 형태로 정규화\n// 기대 입력: $json.message.content = {\"translatedText\":..., \"detectedSourceLanguage\":...}\n\nlet translatedText = '';\nlet detectedSourceLanguage = '';\n\nif ($json?.message?.content) {\n  try {\n    const parsed = JSON.parse($json.message.content);\n    translatedText = parsed.translatedText || parsed.translation || '';\n    detectedSourceLanguage = parsed.detectedSourceLanguage || parsed.language || '';\n  } catch (e) {\n    // JSON 파싱 실패 시 원문을 그대로 사용\n    translatedText = '';\n    detectedSourceLanguage = '';\n  }\n}\n\nreturn [{\n  json: {\n    translatedText: translatedText,\n    detectedSourceLanguage: detectedSourceLanguage\n  }\n}];"
+        "jsCode": "// OpenAI 번역 결과를 Google Translate 출력 형태로 정규화\n// 기대 입력: $json.message.content = {\"translatedText\":..., \"detectedSourceLanguage\":...}\n\nlet translatedText = '';\nlet detectedSourceLanguage = '';\n\nif ($json?.message?.content) {\n  try {\n    const parsed = JSON.parse($json.message.content);\n    translatedText = parsed.translatedText || parsed.translation || '';\n    detectedSourceLanguage = parsed.detectedSourceLanguage || parsed.language || '';\n  } catch (e) {\n    // JSON 파싱 실패 시 원문(고객 문의 내용)을 그대로 사용\n    translatedText = $json.content || '';\n    detectedSourceLanguage = '';\n  }\n}\n\nreturn [{\n  json: {\n    translatedText: translatedText,\n    detectedSourceLanguage: detectedSourceLanguage\n  }\n}];"
       },
       "id": "19",
       "name": "Code (Trans Normalize)",
