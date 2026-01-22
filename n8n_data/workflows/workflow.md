@@ -25,7 +25,9 @@ flowchart TD
 	    Trans_Len -->|" Yes "| Trans["Google Translate: 번역"]
 	    Trans_Len -->|" No "| AI_Trans["AI Agent: 번역(OpenAI)"]
 %% 3. 데이터 병합
-	    Set_Crit & AI_Level & AI_Sum & Trans & AI_Trans --> Merge["Merge: 데이터 취합"]
+	    Set_Crit & AI_Level & AI_Sum --> Merge["Merge: 데이터 취합"]
+	    Trans --> Merge
+	    AI_Trans --> Merge
 %% 4. 로깅 (종료)
     Merge --> Log["Google Sheets: 로깅"]
 %% 5. 가이드 로드
@@ -84,7 +86,7 @@ flowchart TD
 ### Step 3. 데이터 병합 (Merge)
 
 - Node: `Merge` (Merge Node)
-- 입력: `Set_Crit` OR `AI_Level` (Track A), `AI_Sum` (Track B), `Trans` (Track C)
+- 입력: `Set_Crit` OR `AI_Level` (Track A), `AI_Sum` (Track B), `Trans` OR `AI_Trans` (Track C)
 - 역할: 흩어진 분석 데이터(레벨, 요약, 번역)를 원본과 하나로 취합
 - Response: 병합된 데이터 객체 (정규화된 `data` + `level`, `summary`, `language`, `translated_text`)
 
