@@ -21,9 +21,11 @@ flowchart TD
     Switch_Type -->|" Critical "| Set_Crit["Set: Level Critical"]
     Switch_Type -->|" General "| AI_Level["AI Agent: Level 판단"]
     Norm --> AI_Sum["AI Agent: 요약"]
-    Norm --> Trans["Google Translate: 번역"]
+	    Norm --> Trans_Len{"IF: 문의 길이 <= 200자"}
+	    Trans_Len -->|" Yes "| Trans["Google Translate: 번역"]
+	    Trans_Len -->|" No "| AI_Trans["AI Agent: 번역(OpenAI)"]
 %% 3. 데이터 병합
-    Set_Crit & AI_Level & AI_Sum & Trans --> Merge["Merge: 데이터 취합"]
+	    Set_Crit & AI_Level & AI_Sum & Trans & AI_Trans --> Merge["Merge: 데이터 취합"]
 %% 4. 로깅 (종료)
     Merge --> Log["Google Sheets: 로깅"]
 %% 5. 가이드 로드
@@ -71,7 +73,10 @@ flowchart TD
 
 [Track C: 번역]
 
-- Node: `Google Translate` (Trans)
+- Node: `IF` (Translate Length <=200)
+    - 조건: 문의 내용(`content`) 길이가 200자 이하인가?
+    - Yes(<=200): `Google Translate` (Trans)
+    - No(>200): `AI Agent` (AI_Trans, OpenAI API)
 - 역할: 원본 내용을 한국어로 번역하고, 문의 내용의 언어를 확인
 - 주의: 유저 국가 정보와 문의 언어는 달라질 수 있음. (ex. 한국 유저가 영어로 문의하면, 영어로 답변해야 함)
 - Response: `language`, `translated_text`
