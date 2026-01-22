@@ -12,7 +12,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1.1,
-      "position": [240, 400],
+      "position": [
+        240,
+        400
+      ],
       "webhookId": "inquiry-final"
     },
     {
@@ -57,7 +60,10 @@
       "name": "Set (Norm)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.3,
-      "position": [460, 400]
+      "position": [
+        460,
+        400
+      ]
     },
     {
       "parameters": {
@@ -104,7 +110,10 @@
       "name": "IF (Critical Check)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
@@ -124,16 +133,19 @@
       "name": "Set (Set_Crit)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.3,
-      "position": [900, 200]
+      "position": [
+        900,
+        200
+      ]
     },
     {
       "parameters": {
         "resource": "text",
         "model": {
           "__rl": true,
-          "value": "gpt-4o-mini",
+          "value": "gpt-5-mini",
           "mode": "list",
-          "cachedResultName": "gpt-4o-mini"
+          "cachedResultName": "gpt-5-mini"
         },
         "prompt": {
           "__rl": true,
@@ -149,7 +161,10 @@
       "name": "AI Agent (AI_Level)",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [900, 400],
+      "position": [
+        900,
+        400
+      ],
       "credentials": {
         "openAiApi": {
           "id": "openai-api",
@@ -165,9 +180,9 @@
         "resource": "text",
         "model": {
           "__rl": true,
-          "value": "gpt-4o-mini",
+          "value": "gpt-5-mini",
           "mode": "list",
-          "cachedResultName": "gpt-4o-mini"
+          "cachedResultName": "gpt-5-mini"
         },
         "prompt": {
           "__rl": true,
@@ -183,7 +198,10 @@
       "name": "AI Agent (AI_Sum)",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [680, 500],
+      "position": [
+        680,
+        500
+      ],
       "credentials": {
         "openAiApi": {
           "id": "openai-api",
@@ -193,6 +211,38 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "len1",
+              "leftValue": "={{ ($json.content || '').length }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "smallerEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "17",
+      "name": "IF (Translate Length <=200)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        620
+      ]
     },
     {
       "parameters": {
@@ -206,7 +256,10 @@
       "name": "Google Translate (Trans)",
       "type": "n8n-nodes-base.googleTranslate",
       "typeVersion": 1,
-      "position": [680, 700],
+      "position": [
+        680,
+        700
+      ],
       "credentials": {
         "googleApi": {
           "id": "google-service-account",
@@ -216,13 +269,66 @@
     },
     {
       "parameters": {
+        "resource": "text",
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "prompt": {
+          "__rl": true,
+          "value": "=당신은 번역 전문가입니다.\n\n아래 고객 문의 내용을 **한국어로 번역**하고, 원문의 언어를 ISO 코드(가능하면 2글자, 필요 시 지역 포함 예: zh-cn)로 추정하세요.\n\n문의 내용:\n{{ $json.content }}\n\nJSON 형식으로만 응답:\n{\"translatedText\": \"번역문\", \"detectedSourceLanguage\": \"en|ko|ja|zh-cn|...\"}",
+          "mode": "id"
+        },
+        "options": {
+          "temperature": 0.2,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "18",
+      "name": "AI Agent (AI_Trans)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [
+        900,
+        840
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api",
+          "name": "OpenAI API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000
+    },
+    {
+      "parameters": {
+        "jsCode": "// OpenAI 번역 결과를 Google Translate 출력 형태로 정규화\n// 기대 입력: $json.message.content = {\"translatedText\":..., \"detectedSourceLanguage\":...}\n\nlet translatedText = '';\nlet detectedSourceLanguage = '';\n\nif ($json?.message?.content) {\n  try {\n    const parsed = JSON.parse($json.message.content);\n    translatedText = parsed.translatedText || parsed.translation || '';\n    detectedSourceLanguage = parsed.detectedSourceLanguage || parsed.language || '';\n  } catch (e) {\n    // JSON 파싱 실패 시 원문을 그대로 사용\n    translatedText = '';\n    detectedSourceLanguage = '';\n  }\n}\n\nreturn [{\n  json: {\n    translatedText: translatedText,\n    detectedSourceLanguage: detectedSourceLanguage\n  }\n}];"
+      },
+      "id": "19",
+      "name": "Code (Trans Normalize)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        840
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "// Track A: 원본 데이터 + level 추가\nconst original = $('Set (Norm)').first().json;\nconst level = $json.level || ($json.message?.content ? JSON.parse($json.message.content).level : 'info');\n\nreturn [{\n  json: {\n    ...original,\n    level: level\n  }\n}];"
       },
       "id": "8",
       "name": "Code (Combine A)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300]
+      "position": [
+        1120,
+        300
+      ]
     },
     {
       "parameters": {
@@ -232,7 +338,10 @@
       "name": "Code (Combine B)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 500]
+      "position": [
+        900,
+        500
+      ]
     },
     {
       "parameters": {
@@ -242,7 +351,10 @@
       "name": "Code (Combine C)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 700]
+      "position": [
+        900,
+        700
+      ]
     },
     {
       "parameters": {
@@ -252,7 +364,10 @@
       "name": "Code (Final Merge)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 500]
+      "position": [
+        1340,
+        500
+      ]
     },
     {
       "parameters": {
@@ -283,7 +398,10 @@
       "name": "Google Sheets (Log)",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.4,
-      "position": [1560, 260],
+      "position": [
+        1560,
+        260
+      ],
       "credentials": {
         "googleSheetsApi": {
           "id": "google-sheets-service-account",
@@ -300,16 +418,19 @@
       "name": "Read Binary File (Load_File)",
       "type": "n8n-nodes-base.readBinaryFile",
       "typeVersion": 1,
-      "position": [1560, 540]
+      "position": [
+        1560,
+        540
+      ]
     },
     {
       "parameters": {
         "resource": "text",
         "model": {
           "__rl": true,
-          "value": "gpt-4o-mini",
+          "value": "gpt-5-mini",
           "mode": "list",
-          "cachedResultName": "gpt-4o-mini"
+          "cachedResultName": "gpt-5-mini"
         },
         "prompt": {
           "__rl": true,
@@ -325,7 +446,10 @@
       "name": "AI Agent (AI_Draft)",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [1780, 540],
+      "position": [
+        1780,
+        540
+      ],
       "credentials": {
         "openAiApi": {
           "id": "openai-api",
@@ -344,7 +468,10 @@
       "name": "Code (Map_Address)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 540]
+      "position": [
+        2000,
+        540
+      ]
     },
     {
       "parameters": {
@@ -359,7 +486,10 @@
       "name": "Email (Mail_Send)",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [2220, 540],
+      "position": [
+        2220,
+        540
+      ],
       "credentials": {
         "smtp": {
           "id": "smtp",
@@ -394,7 +524,47 @@
             "index": 0
           },
           {
+            "node": "IF (Translate Length <=200)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Translate Length <=200)": {
+      "main": [
+        [
+          {
             "node": "Google Translate (Trans)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (AI_Trans)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (AI_Trans)": {
+      "main": [
+        [
+          {
+            "node": "Code (Trans Normalize)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code (Trans Normalize)": {
+      "main": [
+        [
+          {
+            "node": "Code (Combine C)",
             "type": "main",
             "index": 0
           }
