@@ -128,18 +128,27 @@ Icon?
 .agents/*
 .augment/*
 .amazonq/*
-.claude/*
 .codebuddy/*
 .codex/*
 .cursor/*
 .gemini/*
-.github/agents/*
-.github/prompts/*
 .kilocode/*
 .opencode/*
 .qwen/*
 .roo/*
 .windsurf/*
+
+# Claude
+.claude/commands/speckit.*
+.claude/hooks/.permissions-checked
+.claude/memory/*
+!.claude/memory/.gitkeep
+.claude/settings.local.json
+.claude/.supermemory-claude/config.json
+
+# GitHub
+.github/agents/*
+.github/prompts/*
 
 # Agent-OS
 .agent-os/
